@@ -13,6 +13,20 @@ def remove_suffixes(data):
         return data.replace("%", "")
 
 
+def get_interval_beginning(data):
+    if pd.isna(data):
+        return data
+    else:
+        return data.split('-')[0]
+
+
+def get_interval_ending(data):
+    if pd.isna(data):
+        return data
+    else:
+        return data.split('-')[1]
+
+
 def transform_data(dataset):
     dataset['secondary_type'] = dataset['secondary_type'].astype('category').cat.codes
     dataset['region'] = dataset['region'].astype('category').cat.codes
@@ -22,10 +36,17 @@ def transform_data(dataset):
 
     dataset['pokemon_family'] = dataset['pokemon_family'].astype('category').cat.codes
 
-    # TODO: attack, defense i stamina su brojevi pa ih ne moramo menjati
+    # attack, defense i stamina su brojevi pa ih ne moramo menjati
 
-    # TODO: cp-range i hp-range isprobati da li da se cuva pocetak i kraj intrvala u dve kolone,
-    # ili samo sirina intervala u jednoj
+    # TODO: cp-range i hp-range isprobati da li da se cuva ovako ili sirina intervala
+    dataset['cp_range_beginning'] = dataset['cp_range'].apply(get_interval_beginning)
+    dataset['cp_range_ending'] = dataset['cp_range'].apply(get_interval_ending)
+
+    dataset['hp_range_beginning'] = dataset['hp_range'].apply(get_interval_beginning)
+    dataset['hp_range_ending'] = dataset['hp_range'].apply(get_interval_ending)
+
+    dataset = dataset.drop("cp_range", axis="columns")
+    dataset = dataset.drop("hp_range", axis="columns")
 
     dataset['capture_rate'] = dataset['capture_rate'].apply(remove_suffixes)
     dataset['flee_rate'] = dataset['flee_rate'].apply(remove_suffixes)
@@ -56,5 +77,5 @@ if __name__ == "__main__":
     df = pd.read_csv("dataset.csv")
     X, y = transform_data(df)
 
-    print(X['poss_attacks'])
+    print(X)
 
