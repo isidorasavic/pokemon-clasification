@@ -6,10 +6,25 @@ from sklearn.ensemble import BaggingClassifier
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import HistGradientBoostingClassifier
-
+from sklearn.kernel_ridge import KernelRidge
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.linear_model import ElasticNet
+from sklearn.ensemble import BaggingClassifier
+from sklearn.svm import SVC
 from colorama import init, Fore, Back, Style
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.svm import LinearSVC
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import make_pipeline
+from sklearn.ensemble import StackingClassifier
+from sklearn.mixture import GaussianMixture
+from sklearn.naive_bayes import GaussianNB
+from sklearn.decomposition import KernelPCA
+from sklearn.metrics import classification_report
 
 init(autoreset=True)
+
 
 def remove_suffixes(data):
     if pd.isna(data):
@@ -58,20 +73,20 @@ def transform_data(dataset):
     dataset = dataset.drop("hp_range", axis="columns")
 
     dataset['capture_rate'] = dataset['capture_rate'].apply(remove_suffixes)
-    # median = dataset['capture_rate'].median()
-    # dataset['capture_rate'].fillna(median, inplace=True)
+    median = dataset['capture_rate'].median()
+    dataset['capture_rate'].fillna(median, inplace=True)
 
     dataset['flee_rate'] = dataset['flee_rate'].apply(remove_suffixes)
-    # median = dataset['flee_rate'].median()
-    # dataset['flee_rate'].fillna(median, inplace=True)
+    median = dataset['flee_rate'].median()
+    dataset['flee_rate'].fillna(median, inplace=True)
 
     dataset['male_perc'] = dataset['male_perc'].apply(remove_suffixes)
-    # median = dataset['male_perc'].median()
-    # dataset['male_perc'].fillna(median, inplace=True)
+    median = dataset['male_perc'].median()
+    dataset['male_perc'].fillna(median, inplace=True)
 
     dataset['female_perc'] = dataset['female_perc'].apply(remove_suffixes)
-    # median = dataset['female_perc'].median()
-    # dataset['female_perc'].fillna(median, inplace=True)
+    median = dataset['female_perc'].median()
+    dataset['female_perc'].fillna(median, inplace=True)
 
     # todo: videti sta sa resistance, weakness
 
@@ -95,10 +110,42 @@ def transform_data(dataset):
     X = X.drop("weakness", axis="columns")
     X = X.drop("pokemon_name", axis="columns")
 
-
     dataset['main_type'] = dataset['main_type'].astype('category').cat.codes
-    y = dataset["main_type"].astype('category').cat.codes
+    y = dataset["main_type"]
     return X, y
+
+
+def kNN():
+    neigh = KNeighborsClassifier(n_neighbors=29)
+    neigh.fit(X_train, y_train)
+    predicted_y = neigh.predict(X_test)
+    print("K nearest neighbours: ", metrics.accuracy_score(y_test, predicted_y))
+
+
+# najbolje radi ako se ne popunjavaju NaN polja (za sad bez lista obelezja)
+def hist_boosting():
+    model = HistGradientBoostingClassifier(random_state=8, learning_rate=0.09)
+    model.fit(X_train, y_train)
+    predicted_y = model.predict(X_test)
+
+    print("Hist Gradient Boosting Classifier: ", metrics.accuracy_score(y_test, predicted_y))
+    return predicted_y
+
+
+def bagging():
+    bag = BaggingClassifier(n_estimators=500, random_state=15)
+    bag.fit(X_train, y_train)
+    predicted_y = bag.predict(X_test)
+    print("Bagging: ", metrics.accuracy_score(y_test, predicted_y))
+
+
+# bas lose
+def nb():
+    gnb = GaussianNB()
+    gnb.fit(X_train, y_train)
+    predicted_y = gnb.predict(X_test)
+    print("Naive bayes: ", metrics.accuracy_score(y_test, predicted_y))
+
 
 
 if __name__ == "__main__":
@@ -108,20 +155,24 @@ if __name__ == "__main__":
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
 
-    seed = 8
-    X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, stratify=y, random_state=seed)
+    X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, stratify=y, random_state=8)
 
-    k_fold = model_selection.KFold(n_splits=3, random_state=seed, shuffle=True)
-    base_cls = DecisionTreeClassifier()
-    num_trees = 300
 
-    model = HistGradientBoostingClassifier(random_state=seed, learning_rate=0.09)
-    model.fit(X_train, y_train)
 
-    expected_y = y_test
-    predicted_y = model.predict(X_test)
+    # Kernel PCA
+    k_pca = KernelPCA(n_components=19, kernel='rbf')
+    # X_train = k_pca.fit_transform(X_train)
+    # X_test = k_pca.fit_transform(X_test)
 
-    print("HistGradientBoostingClassifier: ", metrics.accuracy_score(expected_y, predicted_y))
+    # classifier = LogisticRegression(random_state=8)
+    # classifier.fit(X_train, y_train)
+    #
+    # hist_boosting()
+    #
+    y_pred = hist_boosting()
+
+    print(metrics.accuracy_score(y_test, y_pred))
+
 
     # for i in range(len(expected_y.values)):
     #     if expected_y.values[i] == predicted_y[i]:
@@ -129,5 +180,3 @@ if __name__ == "__main__":
     #     else:
     #         text = Fore.RED + "Expected: " + str(expected_y.values[i]) + "  Predicted: "+str(predicted_y[i]) + Fore.RESET
     #     print(text)
-
-
