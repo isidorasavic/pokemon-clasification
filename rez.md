@@ -6,6 +6,14 @@
     * 0.33678
  3. learning-rate = 0.09, bez imena i sa popunjavanjem NaN polja (rate hvatanja i bezanja)
     * 0.36269
+ 4. lr = 0.09 i umesto dva polja za intervale, samo sirina intervala
+    * 0.36787
+ 5. sve isto samo categorizacija celih weakness i sirina inervala (isto i za cele intervale)
+    * 0.77
+ 6. lr = 0.09 samo i resistance i weakness celi kao broj i sirina inervala (isto i za cele intervale)
+    * 0.839
+ 7. isto kao 6. samo popunjena prazna polja za pol i rate
+    * 0.829
 
 ### BaggingClassifier
  1. Popunjeni polovi i rate

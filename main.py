@@ -22,6 +22,7 @@ from sklearn.mixture import GaussianMixture
 from sklearn.naive_bayes import GaussianNB
 from sklearn.decomposition import KernelPCA
 from sklearn.metrics import classification_report
+import json
 
 init(autoreset=True)
 
@@ -51,6 +52,13 @@ def get_interval_ending(data):
         return data.split('-')[1].replace(",", ".")
 
 
+def get_interval_size(data):
+    if pd.isna(data):
+        return data
+    else:
+        return float(data.split('-')[0].replace(",", ".")) - float(data.split('-')[1].replace(",", "."))
+
+
 def transform_data(dataset):
     dataset['secondary_type'] = dataset['secondary_type'].astype('category').cat.codes
     dataset['region'] = dataset['region'].astype('category').cat.codes
@@ -60,35 +68,37 @@ def transform_data(dataset):
 
     dataset['pokemon_family'] = dataset['pokemon_family'].astype('category').cat.codes
 
-    # attack, defense i stamina su brojevi pa ih ne moramo menjati
-
-    # TODO: cp-range i hp-range isprobati da li da se cuva ovako ili sirina intervala
+    # ako zelimo sve podatke o intervalima
     dataset['cp_range_beginning'] = dataset['cp_range'].apply(get_interval_beginning)
     dataset['cp_range_ending'] = dataset['cp_range'].apply(get_interval_ending)
 
     dataset['hp_range_beginning'] = dataset['hp_range'].apply(get_interval_beginning)
     dataset['hp_range_ending'] = dataset['hp_range'].apply(get_interval_ending)
 
+    # ako zelimo samo sirinu intervala
+    # dataset['cp'] = dataset['cp_range'].apply(get_interval_size)
+    # dataset['hp'] = dataset['hp_range'].apply(get_interval_size)
+
+    # uvek brisanje starih kolona
     dataset = dataset.drop("cp_range", axis="columns")
     dataset = dataset.drop("hp_range", axis="columns")
 
+    # dole zakomentarisano je popunjavanje praznih polja, sto ako se radi, dobijaju se za nijansu losiji rezultati
     dataset['capture_rate'] = dataset['capture_rate'].apply(remove_suffixes)
-    median = dataset['capture_rate'].median()
-    dataset['capture_rate'].fillna(median, inplace=True)
+    # median = dataset['capture_rate'].median()
+    # dataset['capture_rate'].fillna(median, inplace=True)
 
     dataset['flee_rate'] = dataset['flee_rate'].apply(remove_suffixes)
-    median = dataset['flee_rate'].median()
-    dataset['flee_rate'].fillna(median, inplace=True)
+    # median = dataset['flee_rate'].median()
+    # dataset['flee_rate'].fillna(median, inplace=True)
 
     dataset['male_perc'] = dataset['male_perc'].apply(remove_suffixes)
-    median = dataset['male_perc'].median()
-    dataset['male_perc'].fillna(median, inplace=True)
+    # median = dataset['male_perc'].median()
+    # dataset['male_perc'].fillna(median, inplace=True)
 
     dataset['female_perc'] = dataset['female_perc'].apply(remove_suffixes)
-    median = dataset['female_perc'].median()
-    dataset['female_perc'].fillna(median, inplace=True)
-
-    # todo: videti sta sa resistance, weakness
+    # median = dataset['female_perc'].median()
+    # dataset['female_perc'].fillna(median, inplace=True)
 
     dataset['wild_avail'] = dataset['wild_avail'].astype('category').cat.codes
     dataset['egg_avail'] = dataset['egg_avail'].astype('category').cat.codes
@@ -96,25 +106,24 @@ def transform_data(dataset):
     dataset['research_avail'] = dataset['research_avail'].astype('category').cat.codes
     dataset['shiny'] = dataset['shiny'].astype('category').cat.codes
     dataset['shadow'] = dataset['shadow'].astype('category').cat.codes
-
-    # TODO: videti za pkedex_desc
+    dataset['weakness'] = dataset['weakness'].astype('category').cat.codes
+    dataset['resistance'] = dataset['resistance'].astype('category').cat.codes
 
     X = dataset.drop("main_type", axis="columns")
+    X = X.drop("pokemon_name", axis="columns")
     X = X.drop("number", axis="columns")
     X = X.drop("pic_url", axis="columns")
-
-    # OBRISATI
-    X = X.drop("pkedex_desc", axis="columns")
     X = X.drop("poss_attacks", axis="columns")
-    X = X.drop("resistance", axis="columns")
-    X = X.drop("weakness", axis="columns")
-    X = X.drop("pokemon_name", axis="columns")
+
+    # TODO: videti za pkedex_desc
+    X = X.drop("pkedex_desc", axis="columns")
 
     dataset['main_type'] = dataset['main_type'].astype('category').cat.codes
     y = dataset["main_type"]
     return X, y
 
 
+# osrednje
 def kNN():
     neigh = KNeighborsClassifier(n_neighbors=29)
     neigh.fit(X_train, y_train)
@@ -122,7 +131,7 @@ def kNN():
     print("K nearest neighbours: ", metrics.accuracy_score(y_test, predicted_y))
 
 
-# najbolje radi ako se ne popunjavaju NaN polja (za sad bez lista obelezja)
+# najbolje radi
 def hist_boosting():
     model = HistGradientBoostingClassifier(random_state=8, learning_rate=0.09)
     model.fit(X_train, y_train)
@@ -132,6 +141,7 @@ def hist_boosting():
     return predicted_y
 
 
+# osrednje radi
 def bagging():
     bag = BaggingClassifier(n_estimators=500, random_state=15)
     bag.fit(X_train, y_train)
@@ -147,6 +157,14 @@ def nb():
     print("Naive bayes: ", metrics.accuracy_score(y_test, predicted_y))
 
 
+def print_results(predicted, expected):
+    for i in range(len(expected.values)):
+        if expected.values[i] == predicted[i]:
+            text = Fore.GREEN + "Expected: " + str(expected.values[i]) + "  Predicted: "+str(predicted[i]) + Fore.RESET
+        else:
+            text = Fore.RED + "Expected: " + str(expected.values[i]) + "  Predicted: "+str(predicted[i]) + Fore.RESET
+        print(text)
+
 
 if __name__ == "__main__":
     df = pd.read_csv("dataset.csv")
@@ -157,26 +175,6 @@ if __name__ == "__main__":
 
     X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, stratify=y, random_state=8)
 
+    predicted_y = hist_boosting()
 
-
-    # Kernel PCA
-    k_pca = KernelPCA(n_components=19, kernel='rbf')
-    # X_train = k_pca.fit_transform(X_train)
-    # X_test = k_pca.fit_transform(X_test)
-
-    # classifier = LogisticRegression(random_state=8)
-    # classifier.fit(X_train, y_train)
-    #
-    # hist_boosting()
-    #
-    y_pred = hist_boosting()
-
-    print(metrics.accuracy_score(y_test, y_pred))
-
-
-    # for i in range(len(expected_y.values)):
-    #     if expected_y.values[i] == predicted_y[i]:
-    #         text = Fore.GREEN + "Expected: " + str(expected_y.values[i]) + "  Predicted: "+str(predicted_y[i]) + Fore.RESET
-    #     else:
-    #         text = Fore.RED + "Expected: " + str(expected_y.values[i]) + "  Predicted: "+str(predicted_y[i]) + Fore.RESET
-    #     print(text)
+    print_results(predicted_y, y_test)
