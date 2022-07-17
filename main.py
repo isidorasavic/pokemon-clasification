@@ -173,7 +173,7 @@ def transform_data(dataset):
     X = X.drop("pokemon_name", axis="columns")
     X = X.drop("number", axis="columns")
     X = X.drop("pic_url", axis="columns")
-    #X = X.drop("poss_attacks", axis="columns")
+    # X = X.drop("poss_attacks", axis="columns")
 
     X = X.drop("pkedex_desc", axis="columns")
 
