@@ -14,6 +14,8 @@
     * 0.839
  7. isto kao 6. samo popunjena prazna polja za pol i rate
     * 0.829
+ 8. sa clasifikacijom lista moci na 6. korak "poss_attacks"
+    * 0.860
 
 ### BaggingClassifier
  1. Popunjeni polovi i rate
